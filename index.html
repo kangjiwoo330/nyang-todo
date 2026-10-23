@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="달성률에 따라 고양이가 달리는 할 일 앱. 데이터는 내 브라우저에만 저장됩니다.">
+<link rel="icon" href="cat.ico">
+<title>냥이 투두</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#2b2a28;--muted:#8a857c;--line:#e6e1d7;--accent:#e8833a;--ok:#3f9b6b;--warn:#c9503c;--soft:#fdf1e6;--ground:#c9c2b4;--paw:#e8833a}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#272522;--ink:#ece8e1;--muted:#9c968c;--line:#3a3732;--soft:#35291f;--ground:#5a554d}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1060px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+h1{font-size:22px;margin:0}
+h2{font-size:16px;margin:0 0 10px}
+.nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:3px 9px;font-size:13px}
+input,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 8px}
+.grid{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.review{background:var(--soft);border:1.5px solid var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.review h2{color:var(--accent)}
+.muted{color:var(--muted);font-size:13px}
+.addrow{display:flex;gap:8px;margin-bottom:12px}
+.addrow input{flex:1;min-width:0}
+ul.tasks{list-style:none;margin:0;padding:0}
+.task{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:none}
+.task .title{flex:1;cursor:text;word-break:break-all}
+.task.st-done .title{text-decoration:line-through;color:var(--muted)}
+.task.st-postponed .title,.task.st-missed .title{color:var(--muted)}
+.task .actions{display:flex;gap:6px;flex:none}
+.badge{font-size:12px;border-radius:999px;padding:1px 7px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.badge.warn{color:var(--warn);border-color:var(--warn)}
+/* paw check */
+.paw{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;flex:none;color:var(--paw)}
+.paw svg{width:20px;height:20px;opacity:0;transform:scale(.4);transition:opacity .15s,transform .2s}
+.paw:hover svg{opacity:.25;transform:scale(.9)}
+.paw.on{border-color:var(--paw);background:var(--soft)}
+.paw.on svg{opacity:1;transform:scale(1);animation:pop .35s ease-out}
+.paw:disabled{opacity:.35;cursor:default}
+@keyframes pop{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+/* icon buttons */
+.ib{width:34px;height:32px;padding:0;display:grid;place-items:center;color:var(--muted)}
+.ib svg{width:19px;height:19px}
+.ib:hover{color:var(--ink)}
+.ib.del:hover{color:var(--warn);border-color:var(--warn)}
+.ib.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* segments */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.seg button{border:none;border-radius:0;padding:5px 12px;background:var(--card)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:var(--card)}
+.seg button.on.c-work{background:#2f5d8a;color:#fff} .seg button.on.c-personal{background:#a14768;color:#fff}
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.listhead h2{margin:0}
+.catb{font:inherit;font-size:12px;font-weight:700;border:none;border-radius:6px;padding:2px 8px;cursor:pointer;flex:none}
+.catb.c-work{background:#e3ecf7;color:#2f5d8a} .catb.c-personal{background:#f7e3eb;color:#a14768}
+@media (prefers-color-scheme:dark){.catb.c-work{background:#22364b;color:#9cc2ea}.catb.c-personal{background:#45222f;color:#eaa3bd}}
+.datehead{font-weight:600;margin:8px 0 2px;font-size:14px}
+.pct{font-size:34px;font-weight:700;text-align:center;margin-top:4px}
+.bar{height:10px;background:var(--bg);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.catmsg{text-align:center;margin:6px 0 10px;font-weight:600}
+/* cat picker */
+.catpick{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.swatches{display:flex;gap:6px}
+.sw{width:24px;height:24px;padding:0;border-radius:50%;border:2px solid var(--line);cursor:pointer}
+.sw.on{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--card)}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px}
+summary{cursor:pointer;font-weight:600}
+.form{display:grid;gap:8px;margin:12px 0}
+.form .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.form label.lb{width:140px;flex:none;font-size:14px}
+.wds label{margin-right:6px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.logbox{max-height:340px;overflow:auto}
+.ok{color:var(--ok)} .err{color:var(--warn)}
+.unused{font-size:12px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.unused.ok{color:var(--ok);border-color:var(--ok)} #syncPill.err{color:var(--warn);border-color:var(--warn)}
+/* ---------- cat ---------- */
+#catsvg{width:100%;height:auto;display:block;--dur:1.6s;--amp:16;--bob:1.5;--gdur:4s}
+#catsvg .fur{fill:var(--c-fur)}
+#catsvg .legfar{fill:var(--c-far)} #catsvg .legnear{fill:var(--c-fur)}
+#catsvg .sock{fill:var(--c-sock);opacity:var(--c-socko)}
+#catsvg .earL{fill:var(--c-earL)} #catsvg .earR{fill:var(--c-earR)}
+#catsvg .pb1{fill:var(--c-b1);opacity:var(--c-b1o)} #catsvg .pb2{fill:var(--c-b2);opacity:var(--c-b2o)} #catsvg .pb3{fill:var(--c-b3);opacity:var(--c-b3o)}
+#catsvg .ph1{fill:var(--c-h1);opacity:var(--c-h1o)} #catsvg .ph2{fill:var(--c-h2);opacity:var(--c-h2o)} #catsvg .ph3{fill:var(--c-h3);opacity:var(--c-h3o)} #catsvg .ph4{fill:var(--c-h4);opacity:var(--c-h4o)}
+#catsvg .stripes{stroke:var(--c-stripe);opacity:var(--c-stripeOp);stroke-width:3;fill:none;stroke-linecap:round}
+#catsvg .ol{fill:none;stroke:var(--c-outline);stroke-width:1.4}
+#catsvg .tail-ol{stroke:var(--c-outline);stroke-width:10.8;fill:none;stroke-linecap:round}
+#catsvg .tail-in{stroke:var(--c-tail);stroke-width:8;fill:none;stroke-linecap:round}
+#catsvg .iris{fill:var(--c-iris)}
+#catsvg .mouth{stroke:var(--c-mouth);stroke-width:1.5;fill:none;stroke-linecap:round}
+#catsvg .whisk{stroke:var(--c-whisker);stroke-width:1.2}
+#catsvg .bobg{animation:bob calc(var(--dur) / 2) ease-in-out infinite}
+#catsvg .tiltg{transform-box:fill-box;transform-origin:50% 50%}
+#catsvg .leg{transform-box:fill-box;transform-origin:50% 8%}
+#catsvg.gait-walk .leg.a{animation:swing var(--dur) ease-in-out infinite}
+#catsvg.gait-walk .leg.b{animation:swing var(--dur) ease-in-out infinite;animation-delay:calc(var(--dur) * -0.5)}
+#catsvg.gait-gallop .leg.f{animation:swing var(--dur) ease-in-out infinite}
+#catsvg.gait-gallop .leg.f.far{animation-delay:calc(var(--dur) * -0.12)}
+#catsvg.gait-gallop .leg.h{animation:swing var(--dur) ease-in-out infinite;animation-delay:calc(var(--dur) * -0.5)}
+#catsvg.gait-gallop .leg.h.far{animation-delay:calc(var(--dur) * -0.62)}
+#catsvg.gait-gallop .tiltg{animation:tilt var(--dur) ease-in-out infinite}
+#catsvg .tail{transform-box:fill-box;transform-origin:100% 100%;animation:wag calc(var(--dur) * 1.5) ease-in-out infinite}
+#catsvg .dash{stroke:var(--ground);stroke-width:3;stroke-dasharray:14 10;animation:ground var(--gdur) linear infinite}
+#catsvg .speed{stroke:var(--muted);stroke-width:2.5;stroke-linecap:round;opacity:0}
+#catsvg.gait-gallop .speed{animation:lines calc(var(--dur) * 1.2) linear infinite}
+#catsvg .eye-closed,#catsvg .zzz,#catsvg .party{display:none}
+#catsvg.idle .eye-open{display:none} #catsvg.idle .eye-closed,#catsvg.idle .zzz{display:inline}
+#catsvg.idle .leg,#catsvg.idle .bobg,#catsvg.idle .tiltg,#catsvg.idle .dash,#catsvg.idle .tail{animation:none}
+#catsvg.party .party{display:inline;animation:twinkle .6s ease-in-out infinite alternate}
+#catsvg .zzz{fill:var(--muted);font-size:14px;font-weight:700;animation:float 2.4s ease-in-out infinite}
+@keyframes swing{0%,100%{transform:rotate(calc(var(--amp) * 1deg))}50%{transform:rotate(calc(var(--amp) * -1deg))}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(var(--bob) * -1px))}}
+@keyframes tilt{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(4deg)}}
+@keyframes wag{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
+@keyframes ground{to{stroke-dashoffset:48}}
+@keyframes lines{0%{opacity:0;transform:translateX(20px)}30%{opacity:.8}100%{opacity:0;transform:translateX(-30px)}}
+@keyframes twinkle{from{opacity:.3}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+#catsvg .pose{display:none}
+#catsvg[data-pose="stand"] .pose-stand,#catsvg[data-pose="sleep"] .pose-sleep,#catsvg[data-pose="play"] .pose-play,#catsvg[data-pose="pack"] .pose-pack{display:inline}
+#catsvg:not([data-pose="stand"]) .dash{animation:none}
+#catsvg .pose-sleep .eye-open{display:none} #catsvg .pose-sleep .eye-closed{display:inline}
+#catsvg .breath{transform-box:fill-box;transform-origin:50% 100%;animation:breath 3.2s ease-in-out infinite}
+#catsvg .zz text{fill:var(--muted);font-weight:700;font-size:13px;opacity:0;animation:zfloat 3s ease-in-out infinite}
+#catsvg .zz text:nth-child(2){animation-delay:1s} #catsvg .zz text:nth-child(3){animation-delay:2s;font-size:16px}
+#catsvg .toy{transform-box:view-box;transform-origin:146px -4px;animation:toy 1.3s ease-in-out infinite}
+#catsvg .pl{transform-box:fill-box;transform-origin:50% 100%}
+#catsvg .pl.f1{animation:bat .65s ease-in-out infinite alternate}
+#catsvg .pl.f2{animation:bat .65s ease-in-out infinite alternate;animation-delay:-.32s}
+#catsvg .pl.h1{animation:kick 1.3s ease-in-out infinite alternate}
+#catsvg .pl.h2{animation:kick 1.3s ease-in-out infinite alternate;animation-delay:-.65s}
+#catsvg .rock{transform-box:fill-box;transform-origin:50% 100%;animation:rock 1.3s ease-in-out infinite}
+#catsvg .ptail{transform-box:fill-box;transform-origin:100% 100%;animation:wag .9s ease-in-out infinite}
+#catsvg .arm{transform-box:fill-box;transform-origin:4% 50%;animation:arm 1.2s ease-in-out infinite}
+#catsvg .it{font-size:13px;transform-box:fill-box;transform-origin:center;opacity:0;animation:packit 3.6s ease-in-out infinite}
+#catsvg .bag{transform-box:fill-box;transform-origin:50% 100%;animation:bagbounce 1.2s ease-in-out infinite}
+#catsvg.hop .pose-stand .bobg{animation:hop .5s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.04)}}
+@keyframes zfloat{0%{opacity:0;transform:translate(0,6px)}25%{opacity:1}100%{opacity:0;transform:translate(8px,-12px)}}
+@keyframes toy{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+@keyframes bat{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+@keyframes kick{from{transform:rotate(-8deg)}to{transform:rotate(6deg)}}
+@keyframes rock{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}}
+@keyframes arm{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-10deg)}}
+@keyframes packit{0%{opacity:0;transform:translate(0,0)}10%{opacity:1}45%{transform:translate(16px,-12px)}72%{opacity:1;transform:translate(32px,2px) scale(1)}88%,100%{opacity:0;transform:translate(34px,12px) scale(.5)}}
+@keyframes bagbounce{0%,70%,100%{transform:scale(1,1)}80%{transform:scale(1.04,.95)}}
+@keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-18px)}}
+/* speech bubble */
+.catstage{position:relative}
+.bubble{position:absolute;left:36%;top:0;transform:translateX(-50%);background:var(--accent);color:#fff;font-weight:700;font-size:15px;padding:6px 14px;border-radius:16px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.15);cursor:pointer;z-index:2;animation:bubpop .45s ease-out,bubbob 1.6s ease-in-out .45s infinite}
+.bubble::after{content:"";position:absolute;bottom:-7px;left:50%;margin-left:-7px;border:7px solid transparent;border-top-color:var(--accent);border-bottom:0}
+@keyframes bubpop{0%{transform:translateX(-50%) scale(.3);opacity:0}70%{transform:translateX(-50%) scale(1.1);opacity:1}100%{transform:translateX(-50%) scale(1)}}
+@keyframes bubbob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){#catsvg *{animation-duration:3s!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🐾 냥이 투두</h1>
+    <div class="nav">
+      <button id="prevDay" title="전날">◀</button>
+      <input type="date" id="datePick">
+      <button id="nextDay" title="다음날">▶</button>
+      <button id="goToday">오늘</button>
+    </div>
+  </header>
+
+  <section id="review" class="review" hidden></section>
+
+  <div class="grid">
+    <main>
+      <div class="card">
+        <div class="listhead">
+          <h2 id="listTitle"></h2>
+          <div class="seg" id="filterSeg" title="보기 필터">
+            <button data-f="all">전체</button><button data-f="work" class="c-work">공</button><button data-f="personal" class="c-personal">사</button>
+          </div>
+        </div>
+        <div class="addrow">
+          <div class="seg" id="addSeg" title="새 할 일의 분류">
+            <button data-c="work" class="c-work">공</button><button data-c="personal" class="c-personal">사</button>
+          </div>
+          <input id="newTask" placeholder="할 일을 입력하고 Enter" autocomplete="off">
+          <button class="primary" id="addBtn">추가</button>
+        </div>
+        <ul class="tasks" id="taskList"></ul>
+        <p class="muted" id="emptyMsg" hidden>등록된 할 일이 없습니다.</p>
+        <p class="muted">동그라미를 누르면 발바닥 도장이 찍힙니다. 공/사 표시를 누르면 분류가 바뀌고, 제목을 더블클릭하면 수정됩니다. 미루기 버튼을 한 번 더 누르면 미루기가 취소됩니다.</p>
+      </div>
+    </main>
+
+    <aside>
+      <div class="card">
+        <div class="catpick">
+          <span class="muted">내 고양이 · <b id="catName"></b></span>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div class="catstage">
+        <div class="bubble" id="bubble" hidden title="눌러서 닫기"></div>
+        <svg id="catsvg" viewBox="0 0 240 140" role="img" aria-label="달성률에 따라 움직이는 고양이" data-pose="stand">
+          <defs>
+            <clipPath id="bodyClip"><ellipse cx="110" cy="78" rx="44" ry="21"/></clipPath>
+            <clipPath id="headClip"><circle cx="160" cy="58" r="22"/></clipPath>
+            <clipPath id="sleepClip"><ellipse cx="112" cy="101" rx="48" ry="18"/></clipPath>
+            <clipPath id="playClip"><ellipse cx="112" cy="103" rx="42" ry="16"/></clipPath>
+            <clipPath id="packClip"><ellipse cx="100" cy="94" rx="25" ry="25"/><ellipse cx="94" cy="108" rx="25" ry="11"/></clipPath>
+          </defs>
+          <line class="dash" x1="0" y1="119" x2="240" y2="119"/>
+          <!-- 서 있는 고양이 (걷기·달리기·출퇴근 응원) -->
+          <g class="pose pose-stand">
+          <g>
+            <line class="speed" x1="20" y1="64" x2="48" y2="64"/>
+            <line class="speed" x1="10" y1="80" x2="44" y2="80" style="animation-delay:-.15s"/>
+            <line class="speed" x1="24" y1="96" x2="50" y2="96" style="animation-delay:-.3s"/>
+          </g>
+          <g class="bobg"><g class="tiltg">
+            <g class="tail"><path class="tail-ol" d="M72 74 C50 70 40 52 46 34"/><path class="tail-in" d="M72 74 C50 70 40 52 46 34"/></g>
+            <g class="leg h a far"><rect class="legfar ol-s" x="76" y="84" width="10" height="32" rx="5"/><rect class="sock" x="76" y="106" width="10" height="10" rx="5"/></g>
+            <g class="leg f b far"><rect class="legfar" x="128" y="84" width="10" height="32" rx="5"/><rect class="sock" x="128" y="106" width="10" height="10" rx="5"/></g>
+            <ellipse class="fur" cx="110" cy="78" rx="44" ry="21"/>
+            <g clip-path="url(#bodyClip)">
+              <ellipse class="pb1" cx="96" cy="62" rx="34" ry="15"/>
+              <ellipse class="pb2" cx="132" cy="66" rx="17" ry="12"/>
+              <ellipse class="pb3" cx="150" cy="93" rx="18" ry="14"/>
+            </g>
+            <path class="stripes" d="M98 60 q4 10 0 20 M110 58 q4 10 0 22 M122 60 q4 10 0 20"/>
+            <ellipse class="ol" cx="110" cy="78" rx="44" ry="21"/>
+            <g class="leg h b"><rect class="legnear" x="86" y="86" width="10" height="31" rx="5"/><rect class="sock" x="86" y="107" width="10" height="10" rx="5"/><rect class="ol" x="86" y="86" width="10" height="31" rx="5"/></g>
+            <g class="leg f a"><rect class="legnear" x="138" y="86" width="10" height="31" rx="5"/><rect class="sock" x="138" y="107" width="10" height="10" rx="5"/><rect class="ol" x="138" y="86" width="10" height="31" rx="5"/></g>
+            <g class="head">
+              <polygon class="earL" points="141,46 145,24 159,38"/>
+              <polygon class="earR" points="163,37 177,24 180,47"/>
+              <polygon class="ol" points="141,46 145,24 159,38"/><polygon class="ol" points="163,37 177,24 180,47"/>
+              <polygon points="145,40 147,29 154,37" fill="#f6b6b6"/>
+              <polygon points="168,36 175,29 176,41" fill="#f6b6b6"/>
+              <circle class="fur" cx="160" cy="58" r="22"/>
+              <g clip-path="url(#headClip)">
+                <ellipse class="ph1" cx="147" cy="46" rx="14" ry="13"/>
+                <ellipse class="ph2" cx="174" cy="44" rx="13" ry="12"/>
+                <ellipse class="ph3" cx="160" cy="38" rx="24" ry="13"/>
+                <ellipse class="ph4" cx="161" cy="71" rx="14" ry="10"/>
+              </g>
+              <circle class="ol" cx="160" cy="58" r="22"/>
+              <g class="eye-open">
+                <circle class="iris" cx="153" cy="55" r="3.3"/><circle class="iris" cx="169" cy="55" r="3.3"/>
+                <circle cx="153" cy="55.3" r="1.7" fill="#1e1d1b"/><circle cx="169" cy="55.3" r="1.7" fill="#1e1d1b"/>
+                <circle cx="154.1" cy="53.9" r=".9" fill="#fff"/><circle cx="170.1" cy="53.9" r=".9" fill="#fff"/>
+              </g>
+              <g class="eye-closed mouth"><path d="M149 56 q4 3 8 0"/><path d="M165 56 q4 3 8 0"/></g>
+              <polygon points="158,62 164,62 161,65.5" fill="#d9666b"/>
+              <path class="mouth" d="M161 65.5 q-3 4 -6 1 M161 65.5 q3 4 6 1"/>
+              <circle cx="148" cy="63" r="3" fill="#f6b6b6" opacity=".7"/><circle cx="174" cy="63" r="3" fill="#f6b6b6" opacity=".7"/>
+              <path class="whisk" d="M150 64 l-14 -2 M150 67 l-14 2 M172 64 l14 -2 M172 67 l14 2"/>
+            </g>
+          </g></g>
+          </g>
+          <!-- 쿨쿨 자는 고양이 (할 일 없음 · 0%) -->
+          <g class="pose pose-sleep">
+            <g class="breath">
+              <path class="tail-ol" d="M68 110 C60 126 118 128 150 118"/><path class="tail-in" d="M68 110 C60 126 118 128 150 118"/>
+              <ellipse class="fur" cx="112" cy="101" rx="48" ry="18"/>
+              <g clip-path="url(#sleepClip)">
+                <ellipse class="pb1" cx="100" cy="88" rx="38" ry="12"/><ellipse class="pb2" cx="136" cy="92" rx="15" ry="10"/><ellipse class="pb3" cx="148" cy="111" rx="14" ry="9"/>
+              </g>
+              <path class="stripes" d="M98 85 q4 8 0 15 M112 84 q4 8 0 16 M126 85 q4 8 0 15"/>
+              <ellipse class="ol" cx="112" cy="101" rx="48" ry="18"/>
+              <g class="headslot" data-tf="translate(164 98) rotate(12) scale(.82) translate(-160 -58)"></g>
+              <ellipse class="legnear" cx="150" cy="116" rx="8" ry="4"/><ellipse class="sock" cx="150" cy="116" rx="8" ry="4"/>
+              <ellipse class="legnear" cx="164" cy="117" rx="8" ry="4"/><ellipse class="sock" cx="164" cy="117" rx="8" ry="4"/>
+            </g>
+            <g class="zz"><text x="188" y="78">z</text><text x="198" y="62">z</text><text x="210" y="46">Z</text></g>
+          </g>
+          <!-- 발라당 누워 장난감 노는 고양이 (100%) -->
+          <g class="pose pose-play">
+            <g class="toy">
+              <line x1="146" y1="-4" x2="140" y2="42" stroke="var(--muted)" stroke-width="1.5"/>
+              <circle cx="140" cy="50" r="8" fill="#e86a8a"/>
+              <path d="M134 46 q6 4 12 0 M133 51 q7 4 14 0 M135 56 q5 2 10 0" stroke="#c9496b" stroke-width="1.2" fill="none"/>
+            </g>
+            <g class="rock">
+              <g class="ptail"><path class="tail-ol" d="M72 106 C54 110 44 100 48 88"/><path class="tail-in" d="M72 106 C54 110 44 100 48 88"/></g>
+              <g class="pl h1"><rect class="legfar" x="80" y="68" width="9" height="28" rx="4.5"/><rect class="sock" x="80" y="68" width="9" height="9" rx="4.5"/></g>
+              <g class="pl h2"><rect class="legnear" x="94" y="64" width="10" height="30" rx="5"/><rect class="sock" x="94" y="64" width="10" height="9" rx="5"/></g>
+              <g class="pl f1"><rect class="legfar" x="124" y="62" width="9" height="30" rx="4.5"/><rect class="sock" x="124" y="62" width="9" height="9" rx="4.5"/></g>
+              <g class="pl f2"><rect class="legnear" x="137" y="64" width="10" height="28" rx="5"/><rect class="sock" x="137" y="64" width="10" height="9" rx="5"/></g>
+              <ellipse class="fur" cx="112" cy="103" rx="42" ry="16"/>
+              <g clip-path="url(#playClip)">
+                <ellipse class="pb1" cx="100" cy="114" rx="36" ry="9"/><ellipse class="pb2" cx="136" cy="110" rx="14" ry="9"/><ellipse class="pb3" cx="118" cy="95" rx="28" ry="9"/>
+              </g>
+              <ellipse cx="114" cy="95" rx="26" ry="7" fill="#fff" opacity=".22"/>
+              <path class="stripes" d="M92 104 q3 6 0 12 M106 104 q3 6 0 13 M120 104 q3 6 0 12"/>
+              <ellipse class="ol" cx="112" cy="103" rx="42" ry="16"/>
+              <g class="headslot" data-tf="translate(168 101) rotate(82) scale(.8) translate(-160 -58)"></g>
+            </g>
+          </g>
+          <!-- 주섬주섬 집 갈 준비하는 고양이 (퇴근 10분 전) -->
+          <g class="pose pose-pack">
+            <path d="M161 88 C161 70 191 70 191 88" stroke="#56779e" stroke-width="4" fill="none"/>
+            <g class="items"><text class="it" x="134" y="80">🐟</text><text class="it" x="134" y="80" style="animation-delay:-1.2s">📄</text><text class="it" x="134" y="80" style="animation-delay:-2.4s">🍙</text></g>
+            <g class="bag">
+              <rect x="148" y="86" width="56" height="33" rx="9" fill="#7a9cc4"/>
+              <ellipse cx="176" cy="88" rx="25" ry="5" fill="#4f6f95"/>
+              <rect x="163" y="100" width="26" height="12" rx="3" fill="#6a8cb5"/>
+            </g>
+            <path class="tail-ol" d="M80 115 C58 120 54 104 64 96"/><path class="tail-in" d="M80 115 C58 120 54 104 64 96"/>
+            <ellipse class="fur" cx="100" cy="94" rx="25" ry="25"/><ellipse class="fur" cx="94" cy="108" rx="25" ry="11"/>
+            <g clip-path="url(#packClip)">
+              <ellipse class="pb1" cx="88" cy="82" rx="20" ry="16"/><ellipse class="pb2" cx="100" cy="110" rx="16" ry="8"/><ellipse class="pb3" cx="117" cy="98" rx="10" ry="17"/>
+            </g>
+            <path class="stripes" d="M84 80 q-5 6 -2 13 M93 76 q-5 7 -2 15"/>
+            <ellipse class="ol" cx="100" cy="94" rx="25" ry="25"/>
+            <rect class="legnear" x="111" y="92" width="9" height="27" rx="4.5"/><rect class="sock" x="111" y="110" width="9" height="9" rx="4.5"/>
+            <g class="arm"><rect class="legnear" x="112" y="78" width="30" height="9" rx="4.5"/><rect class="sock" x="133" y="78" width="9" height="9" rx="4.5"/></g>
+            <g class="headslot" data-tf="translate(110 58) rotate(10) scale(.88) translate(-160 -58)"></g>
+          </g>
+          <g class="party" font-size="16"><text x="190" y="30">✨</text><text x="18" y="40">🎉</text><text x="200" y="100">✨</text></g>
+        </svg>
+        </div>
+        <div class="catmsg" id="catMsg"></div>
+        <div class="bar"><i id="barFill" style="width:0%"></i></div>
+        <div class="pct" id="pctText">0%</div>
+        <div class="muted" style="text-align:center" id="pctSub"></div>
+      </div>
+    </aside>
+  </div>
+
+  <details id="routineBox">
+    <summary>🔁 루틴 관리</summary>
+    <div class="form">
+      <div class="row">
+        <select id="rCat"><option value="work">공</option><option value="personal">사</option></select>
+        <input id="rTitle" placeholder="루틴 이름 (예: 물 마시기)" style="flex:1;min-width:200px">
+        <select id="rType">
+          <option value="daily">매일</option>
+          <option value="weekly">매주 (요일 1개)</option>
+          <option value="weekdays">특정 요일 (여러 개)</option>
+          <option value="monthly">매월 (날짜)</option>
+          <option value="dates">특정 날짜</option>
+        </select>
+      </div>
+      <div class="row" id="optWeekly" hidden>요일: <select id="rWeekday"></select></div>
+      <div class="row wds" id="optWeekdays" hidden></div>
+      <div class="row" id="optMonthly" hidden>매월 <input id="rMdays" placeholder="1, 15" style="width:140px"> 일 <span class="muted">(31일처럼 없는 날은 그 달 말일로 처리)</span></div>
+      <div class="row" id="optDates" hidden><input id="rDates" placeholder="2026-11-03, 2026-12-25" style="flex:1;min-width:240px"></div>
+      <div class="row" id="optStart">시작일: <input type="date" id="rStart"></div>
+      <div class="row"><button class="primary" id="addRoutine">루틴 추가</button></div>
+    </div>
+    <table><thead><tr><th>분류</th><th>루틴</th><th>반복</th><th></th></tr></thead><tbody id="routineList"></tbody></table>
+  </details>
+
+  <details id="workBox">
+    <summary>⏰ 출퇴근 응원</summary>
+    <div class="form">
+      <div class="row"><label><input type="checkbox" id="wOn"> 출퇴근 응원 사용</label></div>
+      <div class="row"><label class="lb" for="wStart">출근 시간</label><input type="time" id="wStart"></div>
+      <div class="row"><label class="lb" for="wEnd">퇴근 시간</label><input type="time" id="wEnd"></div>
+      <div class="row wds" id="wDays"></div>
+      <div class="row"><span class="muted" id="wMsg"></span></div>
+      <div class="row">미리보기: <button class="small" data-prev="start">출근 모션</button><button class="small" data-prev="pack">주섬주섬</button><button class="small" data-prev="end">퇴근 모션</button></div>
+      <p class="muted" style="margin:0">출근·퇴근 시각이 되면 1분 동안 응원 모션이 나옵니다. 그 시각을 놓쳐도 5분 안에 앱을 열면 나옵니다. 퇴근 10분 전부터는 고양이가 집 갈 준비를 하고, 달성률 막대와 퍼센트는 그대로 보입니다. 이 설정은 이 브라우저에만 저장됩니다.</p>
+    </div>
+  </details>
+
+  <details id="logBox">
+    <summary>📜 활동 로그</summary>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="exportCsv">로그 CSV 내보내기</button>
+      <span class="muted">최근 300건 표시</span>
+    </div>
+    <div class="logbox"><table><thead><tr><th>시각</th><th>동작</th><th>내용</th><th>비고</th></tr></thead><tbody id="logList"></tbody></table></div>
+  </details>
+
+  <details id="backupBox">
+    <summary>💾 백업</summary>
+    <div class="form">
+      <p class="muted" style="margin:0">모든 데이터는 이 브라우저 안에만 저장되며, 어디로도 전송되지 않습니다. 브라우저 데이터를 지우면 할 일도 함께 지워지니 가끔 백업 파일을 내려받아 두세요.</p>
+      <div class="row">
+        <button id="exportJson">전체 백업 내보내기 (JSON)</button>
+        <button id="importBtn" type="button">백업 가져오기 (병합)</button><input type="file" id="importFile" accept=".json" hidden>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+(() => {
+'use strict';
+// 공개판은 개인용 앱과 저장 공간을 나누기 위해 'nyangTodo.' 접두어를 씁니다.
+const KEY = 'nyangTodo.v1', CATKEY = 'nyangTodo.catKind';
+const WD = ['일','월','화','수','목','금','토'];
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseD = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate()+n); return ymd(d); };
+const todayStr = () => ymd(new Date());
+const md = s => { const d = parseD(s); return `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})`; };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k, v); } catch(e){} }
+const fmtTs = ts => { const d = new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+const CATS = { work: '공', personal: '사' };
+const catOf = t => t && t.cat === 'personal' ? 'personal' : 'work';
+const STNAME = { todo: '미완료', done: '완료', missed: '미달성', postponed: '미룸' };
+let addCat = lsGet('nyangTodo.addCat') === 'personal' ? 'personal' : 'work';
+let filter = ['all', 'work', 'personal'].includes(lsGet('nyangTodo.filter')) ? lsGet('nyangTodo.filter') : 'all';
+
+
+const blank = () => ({ version: 1, tasks: [], routines: [], log: [], updatedAt: 0 });
+let state = blank();
+try { const raw = lsGet(KEY); if (raw) state = Object.assign(blank(), JSON.parse(raw)); } catch(e) {}
+
+let selected = todayStr();
+let lastToday = todayStr();
+const live = a => a.filter(x => !x.deleted);
+const find = id => state.tasks.find(t => t.id === id);
+const touch = x => { x.updatedAt = Date.now(); };
+
+function addLog(action, title, detail = '') {
+  state.log.push({ id: uid(), ts: Date.now(), action, title, detail });
+}
+function persist() { state.updatedAt = Date.now(); lsSet(KEY, JSON.stringify(state)); }
+function commit() { persist(); render(); }
+
+/* ---------- icons ---------- */
+const ICON = {
+  paw: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16.2" rx="5.2" ry="4.3"/><ellipse cx="5.6" cy="10.6" rx="2.2" ry="2.7" transform="rotate(-18 5.6 10.6)"/><ellipse cx="9.6" cy="6.8" rx="2.2" ry="2.8" transform="rotate(-6 9.6 6.8)"/><ellipse cx="14.4" cy="6.8" rx="2.2" ry="2.8" transform="rotate(6 14.4 6.8)"/><ellipse cx="18.4" cy="10.6" rx="2.2" ry="2.7" transform="rotate(18 18.4 10.6)"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5.5M14 11v5.5"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h12"/><path d="M11 6l6 6-6 6"/><path d="M20 5v14"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12h-1" transform="translate(0 -6)"/></svg>'
+};
+
+/* ---------- routines ---------- */
+function matches(r, ds) {
+  if (r.type !== 'dates' && ds < r.startDate) return false;
+  const d = parseD(ds), wd = d.getDay(), dom = d.getDate();
+  const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  switch (r.type) {
+    case 'daily': return true;
+    case 'weekly': return wd === Number(r.weekday);
+    case 'weekdays': return (r.weekdays || []).includes(wd);
+    case 'monthly': return (r.monthDays || []).some(x => x === dom || (x > last && dom === last));
+    case 'dates': return (r.dates || []).includes(ds);
+  }
+  return false;
+}
+function describe(r) {
+  switch (r.type) {
+    case 'daily': return '매일';
+    case 'weekly': return `매주 ${WD[r.weekday]}요일`;
+    case 'weekdays': return '매주 ' + r.weekdays.map(i => WD[i]).join('·');
+    case 'monthly': return `매월 ${r.monthDays.join(', ')}일`;
+    case 'dates': return '지정일 ' + r.dates.map(md).join(', ');
+  }
+  return '';
+}
+function ensure(ds) {
+  let changed = false;
+  for (const r of live(state.routines)) {
+    if (!matches(r, ds)) continue;
+    const id = `${r.id}@${ds}`;
+    if (state.tasks.some(t => t.id === id)) continue;
+    // updatedAt=1: 다른 기기에서 실제로 수정된 기록이 항상 우선하도록 함
+    state.tasks.push({ id, title: r.title, cat: catOf(r), date: ds, status: 'todo', routineId: r.id, createdAt: Date.now(), updatedAt: 1 });
+    changed = true;
+  }
+  return changed;
+}
+function ensureAll(noSync) {
+  const t = todayStr();
+  let ch = false;
+  for (const ds of new Set([addDays(t, -1), t, selected])) ch = ensure(ds) || ch;
+  if (ch) persist(noSync);
+}
+
+/* ---------- task operations ---------- */
+function addTask(title, date, cat) {
+  const now = Date.now();
+  state.tasks.push({ id: uid(), title, cat, date, status: 'todo', routineId: null, createdAt: now, updatedAt: now });
+  addLog('추가', title, `${CATS[cat]} · ${md(date)}`);
+}
+function setStatus(t, st) {
+  t.status = st; t.doneAt = st === 'done' ? Date.now() : null; touch(t);
+  addLog({ done: '완료', todo: '완료 취소', missed: '미달성' }[st], t.title, md(t.date));
+}
+function postpone(t, to) {
+  const now = Date.now(), nid = uid();
+  state.tasks.push({ id: nid, title: t.title, cat: catOf(t), date: to, status: 'todo', routineId: null, postponedFrom: t.date, createdAt: now, updatedAt: now });
+  t.status = 'postponed'; t.postponedTo = to; t.postponedId = nid; touch(t);
+  addLog('미루기', t.title, `${md(t.date)} → ${md(to)}`);
+}
+function copyOf(t) {
+  if (t.postponedId) { const c = find(t.postponedId); if (c) return c; }
+  return live(state.tasks).find(x => x.postponedFrom === t.date && x.date === t.postponedTo && x.title === t.title && !x.routineId);
+}
+function unpostpone(t, quiet) {
+  const c = copyOf(t);
+  if (c && !c.deleted) {
+    if (c.status === 'postponed') unpostpone(c, true);
+    else if (c.status !== 'todo' && !quiet &&
+      !confirm(`${md(c.date)}로 옮긴 항목이 이미 '${STNAME[c.status]}' 상태입니다.\n그래도 미루기를 취소할까요? (옮긴 항목은 지워집니다)`)) return false;
+    c.deleted = true; touch(c);
+  }
+  t.status = 'todo'; t.postponedTo = null; t.postponedId = null; touch(t);
+  if (!quiet) addLog('미루기 취소', t.title, md(t.date));
+  return true;
+}
+function delTask(t) { t.deleted = true; touch(t); addLog('삭제', t.title, md(t.date)); }
+function pending() {
+  const t = todayStr();
+  return live(state.tasks).filter(x => x.date < t && x.status === 'todo')
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.createdAt - b.createdAt);
+}
+
+/* ---------- cat coats ---------- */
+const OR = '#f0a35e', BK = '#2a2a2e', WH = '#fbf8f2';
+const CATKINDS = {
+  tuxedo:    { name: '턱시도',   sw: `linear-gradient(90deg,${BK} 50%,${WH} 50%)`,
+               v: { fur: BK, far: '#18181b', b3: WH, b3o: 1, h4: WH, h4o: 1, sock: WH, socko: 1, iris: '#e2c54a', mouth: '#6a665f', whisker: '#bdb7ad', outline: 'rgba(255,255,255,.16)' } },
+  calico:    { name: '삼색',     sw: `conic-gradient(${WH} 0 34%,${OR} 0 67%,${BK} 0)`,
+               v: { fur: WH, far: '#e7e1d6', tail: BK, earL: OR, earR: BK, b1: OR, b1o: 1, b2: BK, b2o: 1, h1: OR, h1o: 1, h2: BK, h2o: 1, whisker: '#bfb5a4', outline: '#d6cebf' } },
+  cheese:    { name: '치즈',     sw: `linear-gradient(90deg,${OR} 50%,${WH} 50%)`,
+               v: { fur: WH, far: '#e7e1d6', tail: OR, earL: OR, earR: OR, b1: OR, b1o: 1, h3: OR, h3o: 1, whisker: '#bfb5a4', outline: '#d6cebf' } },
+  allcheese: { name: '올치즈',   sw: `repeating-linear-gradient(60deg,${OR} 0 4px,#d4803c 4px 6px)`,
+               v: { fur: OR, far: '#d4803c', stripe: '#d4803c', stripeOp: 1 } },
+  black:     { name: '블랙',     sw: '#26262a',
+               v: { fur: '#26262a', far: '#151517', iris: '#f2c94c', mouth: '#8a857c', whisker: '#8a857c', outline: 'rgba(255,255,255,.2)' } },
+  white:     { name: '화이트',   sw: '#fdfcf9',
+               v: { fur: '#fdfcf9', far: '#e9e5dd', iris: '#6fa8dc', whisker: '#cfc8bb', outline: '#cbc3b5' } },
+};
+const CAT_DEF = { stripe: '#000', stripeOp: 0, b1: '#000', b1o: 0, b2: '#000', b2o: 0, b3: '#000', b3o: 0,
+  h1: '#000', h1o: 0, h2: '#000', h2o: 0, h3: '#000', h3o: 0, h4: '#000', h4o: 0, sock: '#fff', socko: 0,
+  iris: '#2b2a28', mouth: '#2b2a28', whisker: '#d4803c', outline: 'transparent' };
+let catKind = CATKINDS[lsGet(CATKEY)] ? lsGet(CATKEY) : 'allcheese';
+function applyCat() {
+  const k = CATKINDS[catKind];
+  const v = Object.assign({}, CAT_DEF, { tail: k.v.fur, earL: k.v.fur, earR: k.v.fur }, k.v);
+  const svg = $('#catsvg');
+  for (const [key, val] of Object.entries(v)) svg.style.setProperty('--c-' + key, val);
+  $('#catName').textContent = k.name;
+  $$('#swatches .sw').forEach(b => b.classList.toggle('on', b.dataset.k === catKind));
+}
+$('#swatches').innerHTML = Object.entries(CATKINDS).map(([k, c]) =>
+  `<button class="sw" data-k="${k}" title="${c.name}" aria-label="${c.name} 고양이" style="background:${c.sw}"></button>`).join('');
+$('#swatches').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  catKind = b.dataset.k; lsSet(CATKEY, catKind); applyCat();
+});
+
+/* ---------- render ---------- */
+function taskRow(t, review) {
+  const badges = [];
+  if (t.routineId) badges.push('<span class="badge" title="루틴">🔁</span>');
+  if (t.postponedFrom) badges.push(`<span class="badge">↪ ${md(t.postponedFrom)}에서</span>`);
+  if (t.status === 'postponed') badges.push(`<span class="badge">→ ${md(t.postponedTo)}로 미룸</span>`);
+  if (t.status === 'missed') badges.push('<span class="badge warn">미달성</span>');
+  let actions;
+  if (review) {
+    actions = `<button class="small" data-act="r-done">🐾 달성</button>
+      <button class="small" data-act="r-today">오늘로</button>
+      <button class="small" data-act="r-miss">✗ 미달성</button>`;
+  } else {
+    let pp = '';
+    if (t.status === 'todo') pp = `<button class="ib" data-act="postpone" title="다음날로 미루기" aria-label="다음날로 미루기">${ICON.next}</button>`;
+    else if (t.status === 'postponed') pp = `<button class="ib active" data-act="unpostpone" title="미루기 취소" aria-label="미루기 취소">${ICON.next}</button>`;
+    actions = pp + `<button class="ib del" data-act="del" title="삭제" aria-label="삭제">${ICON.trash}</button>`;
+  }
+  const chk = review ? '' :
+    `<button class="paw${t.status === 'done' ? ' on' : ''}" data-act="toggle" ${t.status === 'postponed' ? 'disabled' : ''}
+       title="${t.status === 'done' ? '완료 취소' : '완료'}" aria-label="완료 체크" aria-pressed="${t.status === 'done'}">${ICON.paw}</button>`;
+  const c = catOf(t);
+  return `<li class="task st-${t.status}" data-id="${esc(t.id)}">${chk}
+    <button class="catb c-${c}" data-act="cat" title="눌러서 공/사 전환">${CATS[c]}</button>
+    <span class="title" data-act="edit">${esc(t.title)}</span>${badges.join('')}
+    <span class="actions">${actions}</span></li>`;
+}
+function renderReview() {
+  const list = pending(), box = $('#review');
+  if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  let html = `<h2>⏰ 지난 계획 확인 — 체크하지 않은 항목 ${list.length}개</h2>
+    <p class="muted" style="margin:0 0 6px">달성 여부를 표시해 주세요. 처리하면 이 알림이 사라집니다.</p>`;
+  let cur = '';
+  for (const t of list) {
+    if (t.date !== cur) { if (cur) html += '</ul>'; cur = t.date; html += `<div class="datehead">${md(cur)}</div><ul class="tasks">`; }
+    html += taskRow(t, true);
+  }
+  html += '</ul><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button data-act="r-allmiss">남은 항목 모두 미달성 처리</button><button data-act="r-alltoday">남은 항목 모두 오늘로</button></div>';
+  box.innerHTML = html;
+}
+function dayTasks(ds) {
+  const order = { todo: 0, done: 1, missed: 2, postponed: 3 };
+  return live(state.tasks).filter(t => t.date === ds)
+    .sort((a, b) => (order[a.status] - order[b.status]) || (a.createdAt - b.createdAt));
+}
+const viewTasks = ds => dayTasks(ds).filter(t => filter === 'all' || catOf(t) === filter);
+function renderSegs() {
+  $$('#filterSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === filter));
+  $$('#addSeg button').forEach(b => b.classList.toggle('on', b.dataset.c === addCat));
+  $('#newTask').placeholder = `[${CATS[addCat]}] 할 일을 입력하고 Enter`;
+}
+function renderList() {
+  const isToday = selected === todayStr();
+  $('#listTitle').textContent = `${md(selected)}${isToday ? ' · 오늘' : ''} 할 일`;
+  $('#datePick').value = selected;
+  renderSegs();
+  const tasks = viewTasks(selected);
+  $('#taskList').innerHTML = tasks.map(t => taskRow(t, false)).join('');
+  $('#emptyMsg').hidden = tasks.length > 0;
+}
+/* ---------- cat scenes ---------- */
+const SCENES = {
+  start: { pose: 'stand', gait: 'gallop', dur: .26, amp: 46, bob: 8, gdur: .3, party: true, msg: '출근 시간! 오늘도 힘차게 시작해요 🐾', bubble: '힘차게 달려봐요!! 💪' },
+  end:   { pose: 'stand', gait: 'walk', dur: .5, amp: 30, bob: 3, gdur: 2, hop: true, party: true, msg: '퇴근 시간! 오늘도 수고 많았어요 🐾', bubble: '와 집에 가자~! 🏠' },
+  pack:  { pose: 'pack', msg: '퇴근 10분 전… 주섬주섬 집 갈 준비 중 🎒' }
+};
+let catEvent = null;           // { kind: 'start'|'end'|'pack', until: ms }
+let lastSig = '';
+function achieveScene(total, p) {
+  if (!total)  return { pose: 'sleep', msg: '할 일을 추가하면 일어날게요… 😴' };
+  if (p === 0) return { pose: 'sleep', msg: '쿨쿨… 발바닥 도장을 찍어서 깨워 주세요 💤' };
+  if (p < 34)  return { pose: 'stand', gait: 'walk',   dur: 1.7, amp: 15, bob: 1.5, gdur: 4.5, msg: '어슬렁어슬렁 천천히 걷는 중 🐾' };
+  if (p < 67)  return { pose: 'stand', gait: 'walk',   dur: 0.8, amp: 24, bob: 3,   gdur: 1.6, msg: '총총총 발걸음이 빨라지는 중!' };
+  if (p < 100) return { pose: 'stand', gait: 'gallop', dur: 0.42,amp: 38, bob: 6,   gdur: 0.55,msg: '신나게 달리는 중!! 💨' };
+  return { pose: 'play', party: true, msg: '발라당~ 오늘 할 일 다 끝냈다옹! 장난감 놀이 중 🧶' };
+}
+function overlayScene() {
+  if (catEvent && catEvent.until > Date.now()) {
+    const sc = Object.assign({}, SCENES[catEvent.kind]);
+    if (catEvent.kind === 'pack' && catEvent.preview) sc.msg = '(미리보기) ' + sc.msg;
+    return sc;
+  }
+  catEvent = null;
+  const left = minutesToEnd();
+  if (left !== null) return Object.assign({}, SCENES.pack, { msg: `퇴근 ${left}분 전… 주섬주섬 집 갈 준비 중 🎒` });
+  return null;
+}
+function applyScene(sc) {
+  const svg = $('#catsvg');
+  const cls = `gait-${sc.gait || 'walk'}${sc.party ? ' party' : ''}${sc.hop ? ' hop' : ''}`;
+  const sig = [sc.pose, cls, sc.dur, sc.amp, sc.bob, sc.gdur].join('|');
+  if (sig !== lastSig) {        // 같은 장면이면 다시 설정하지 않아 애니메이션이 끊기지 않음
+    svg.setAttribute('data-pose', sc.pose);
+    svg.setAttribute('class', cls);
+    svg.style.setProperty('--dur', (sc.dur || 1.6) + 's');
+    svg.style.setProperty('--amp', sc.amp || 16);
+    svg.style.setProperty('--bob', sc.bob || 0);
+    svg.style.setProperty('--gdur', (sc.gdur || 4) + 's');
+    lastSig = sig;
+  }
+  $('#catMsg').textContent = sc.msg;
+  const bub = $('#bubble');
+  if (sc.bubble) { if (bub.textContent !== sc.bubble || bub.hidden) { bub.textContent = sc.bubble; bub.hidden = false; } }
+  else bub.hidden = true;
+}
+function renderCat() {
+  const ts = viewTasks(selected).filter(t => t.status !== 'postponed');
+  const total = ts.length, done = ts.filter(t => t.status === 'done').length;
+  const p = total ? Math.round(done / total * 100) : 0;
+  applyScene(overlayScene() || achieveScene(total, p));
+  // 달성률 막대와 퍼센트는 장면과 관계없이 항상 유지
+  $('#barFill').style.width = p + '%';
+  $('#pctText').textContent = p + '%';
+  const all = dayTasks(selected).filter(t => t.status !== 'postponed');
+  const part = c => { const a = all.filter(t => catOf(t) === c); return a.length ? `${CATS[c]} ${a.filter(t => t.status === 'done').length}/${a.length}` : `${CATS[c]} 없음`; };
+  const label = filter === 'all' ? '' : `[${CATS[filter]}] `;
+  $('#pctSub').textContent = (total ? `${label}${md(selected)} 달성 ${done} / ${total}` : `${label}할 일 없음`) + ` · ${part('work')} · ${part('personal')}`;
+}
+
+/* ---------- 출퇴근 응원 ---------- */
+const WKEY = 'nyangTodo.work', WFKEY = 'nyangTodo.workFired';
+let work = { on: true, start: '09:00', end: '18:00', days: [1, 2, 3, 4, 5] };
+try { Object.assign(work, JSON.parse(lsGet(WKEY) || '{}')); } catch (e) {}
+let fired = {}; try { fired = JSON.parse(lsGet(WFKEY) || '{}'); } catch (e) {}
+const toMin = hm => { const [h, m] = String(hm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const workToday = () => work.on && work.days.includes(new Date().getDay());
+function minutesToEnd() {          // 퇴근 10분 전 ~ 퇴근 직전이면 남은 분(1~10), 아니면 null
+  if (!workToday()) return null;
+  const left = (toMin(work.end) - nowMin() + 1440) % 1440;
+  return left > 0 && left <= 10 ? left : null;
+}
+function fireEvent(kind, preview) {
+  catEvent = { kind, until: Date.now() + (preview ? 12000 : 60000), preview };
+  renderCat();
+  if (document.visibilityState !== 'visible' && SCENES[kind].bubble) document.title = '🐾 ' + SCENES[kind].bubble;
+}
+function workTick() {
+  if (workToday()) {
+    const t0 = todayStr();
+    for (const k of ['start', 'end']) {
+      const since = (nowMin() - toMin(work[k]) + 1440) % 1440;
+      if (since < 5 && fired[k] !== t0) { fired[k] = t0; lsSet(WFKEY, JSON.stringify(fired)); fireEvent(k); }
+    }
+  }
+  renderCat();
+}
+function fillWorkForm() {
+  $('#wOn').checked = work.on; $('#wStart').value = work.start; $('#wEnd').value = work.end;
+  $('#wDays').innerHTML = '<span style="width:140px;font-size:14px">요일</span>' + WD.map((w, i) =>
+    `<label><input type="checkbox" value="${i}" ${work.days.includes(i) ? 'checked' : ''}> ${w}</label>`).join('');
+}
+function saveWork() {
+  work = { on: $('#wOn').checked, start: $('#wStart').value || '09:00', end: $('#wEnd').value || '18:00',
+           days: $$('#wDays input:checked').map(i => Number(i.value)) };
+  lsSet(WKEY, JSON.stringify(work));
+  $('#wMsg').textContent = work.on ? `저장됨 · 출근 ${work.start} / 퇴근 ${work.end} (주섬주섬은 ${String(Math.floor(((toMin(work.end) - 10 + 1440) % 1440) / 60)).padStart(2, '0')}:${String(((toMin(work.end) - 10 + 1440) % 1440) % 60).padStart(2, '0')}부터)` : '저장됨 · 응원 꺼짐';
+  renderCat();
+}
+function renderRoutines() {
+  const rs = live(state.routines);
+  $('#routineList').innerHTML = rs.length ? rs.map(r =>
+    `<tr data-rid="${esc(r.id)}"><td><span class="catb c-${catOf(r)}">${CATS[catOf(r)]}</span></td><td>${esc(r.title)}</td><td>${esc(describe(r))}${r.type !== 'dates' ? ` <span class="muted">(${md(r.startDate)}부터)</span>` : ''}</td>
+     <td><button class="small" data-act="rdel">삭제</button></td></tr>`).join('')
+    : '<tr><td colspan="4" class="muted">등록된 루틴이 없습니다.</td></tr>';
+}
+function renderLog() {
+  const rows = [...state.log].sort((a, b) => b.ts - a.ts).slice(0, 300);
+  $('#logList').innerHTML = rows.map(l =>
+    `<tr><td>${fmtTs(l.ts)}</td><td>${esc(l.action)}</td><td>${esc(l.title)}</td><td>${esc(l.detail)}</td></tr>`).join('')
+    || '<tr><td colspan="4" class="muted">기록이 없습니다.</td></tr>';
+}
+function render() { renderReview(); renderList(); renderCat(); renderRoutines(); renderLog(); }
+
+/* ---------- events: tasks ---------- */
+function submitNew() {
+  const v = $('#newTask').value.trim();
+  if (!v) return;
+  addTask(v, selected, addCat); $('#newTask').value = ''; commit();
+}
+$('#addBtn').onclick = submitNew;
+$('#newTask').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) submitNew(); });
+$('#addSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  addCat = b.dataset.c; lsSet('nyangTodo.addCat', addCat); renderSegs(); $('#newTask').focus();
+});
+$('#filterSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  filter = b.dataset.f; lsSet('nyangTodo.filter', filter); render();
+});
+
+function onTaskEvent(e) {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'r-allmiss' || act === 'r-alltoday') {
+    const t0 = todayStr();
+    for (const t of pending()) act === 'r-allmiss' ? setStatus(t, 'missed') : postpone(t, t0);
+    return commit();
+  }
+  const li = el.closest('[data-id]'); if (!li) return;
+  const t = find(li.dataset.id); if (!t) return;
+  if (act === 'edit') return;
+  switch (act) {
+    case 'cat': {
+      const to = catOf(t) === 'work' ? 'personal' : 'work';
+      t.cat = to; touch(t); addLog('분류 변경', t.title, `${CATS[to === 'work' ? 'personal' : 'work']} → ${CATS[to]}`); break;
+    }
+    case 'toggle': setStatus(t, t.status === 'done' ? 'todo' : 'done'); break;
+    case 'postpone': postpone(t, addDays(t.date, 1)); break;
+    case 'unpostpone': if (!unpostpone(t)) return; break;
+    case 'del': if (!confirm(`"${t.title}"을(를) 삭제할까요?`)) return; delTask(t); break;
+    case 'r-done': setStatus(t, 'done'); break;
+    case 'r-today': postpone(t, todayStr()); break;
+    case 'r-miss': setStatus(t, 'missed'); break;
+    default: return;
+  }
+  commit();
+}
+function onTaskDbl(e) {
+  const el = e.target.closest('[data-act="edit"]'); if (!el) return;
+  const t = find(el.closest('[data-id]').dataset.id); if (!t) return;
+  const v = prompt('할 일 수정', t.title);
+  if (v == null || !v.trim() || v.trim() === t.title) return;
+  addLog('수정', v.trim(), `이전: ${t.title}`);
+  t.title = v.trim(); touch(t); commit();
+}
+for (const id of ['#taskList', '#review']) {
+  $(id).addEventListener('click', onTaskEvent);
+  $(id).addEventListener('dblclick', onTaskDbl);
+}
+
+/* ---------- events: date nav ---------- */
+function go(ds) { if (!ds) return; selected = ds; if (ensure(selected)) persist(); render(); }
+$('#prevDay').onclick = () => go(addDays(selected, -1));
+$('#nextDay').onclick = () => go(addDays(selected, 1));
+$('#goToday').onclick = () => go(todayStr());
+$('#datePick').onchange = e => go(e.target.value);
+
+/* ---------- events: routines ---------- */
+$('#rWeekday').innerHTML = WD.map((w, i) => `<option value="${i}">${w}요일</option>`).join('');
+$('#optWeekdays').innerHTML = '요일: ' + WD.map((w, i) => `<label><input type="checkbox" value="${i}"> ${w}</label>`).join('');
+$('#rStart').value = todayStr();
+function syncRoutineForm() {
+  const t = $('#rType').value;
+  $('#optWeekly').hidden = t !== 'weekly';
+  $('#optWeekdays').hidden = t !== 'weekdays';
+  $('#optMonthly').hidden = t !== 'monthly';
+  $('#optDates').hidden = t !== 'dates';
+  $('#optStart').hidden = t === 'dates';
+}
+$('#rType').onchange = syncRoutineForm; syncRoutineForm();
+$('#addRoutine').onclick = () => {
+  const title = $('#rTitle').value.trim();
+  if (!title) return alert('루틴 이름을 입력하세요.');
+  const type = $('#rType').value, now = Date.now();
+  const r = { id: 'r' + uid(), title, cat: $('#rCat').value === 'personal' ? 'personal' : 'work', type, startDate: $('#rStart').value || todayStr(), createdAt: now, updatedAt: now };
+  if (type === 'weekly') r.weekday = Number($('#rWeekday').value);
+  if (type === 'weekdays') {
+    r.weekdays = $$('#optWeekdays input:checked').map(i => Number(i.value));
+    if (!r.weekdays.length) return alert('요일을 하나 이상 선택하세요.');
+  }
+  if (type === 'monthly') {
+    r.monthDays = [...new Set($('#rMdays').value.split(/[,\s]+/).map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 31))].sort((a, b) => a - b);
+    if (!r.monthDays.length) return alert('1~31 사이의 날짜를 입력하세요. 예: 1, 15');
+  }
+  if (type === 'dates') {
+    r.dates = [...new Set($('#rDates').value.split(/[,\s]+/).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s)))].sort();
+    if (!r.dates.length) return alert('날짜를 YYYY-MM-DD 형식으로 입력하세요.');
+  }
+  state.routines.push(r);
+  addLog('루틴 추가', title, `${CATS[r.cat]} · ${describe(r)}`);
+  $('#rTitle').value = '';
+  ensureAll(true); commit();
+};
+$('#routineList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act="rdel"]'); if (!b) return;
+  const r = state.routines.find(x => x.id === b.closest('[data-rid]').dataset.rid); if (!r) return;
+  if (!confirm(`루틴 "${r.title}"을(를) 삭제할까요?\n오늘 이후의 미완료 항목도 함께 지워집니다. 지난 기록은 남습니다.`)) return;
+  r.deleted = true; touch(r);
+  const t0 = todayStr();
+  for (const t of state.tasks) if (t.routineId === r.id && t.date >= t0 && t.status === 'todo' && !t.deleted) { t.deleted = true; touch(t); }
+  addLog('루틴 삭제', r.title, describe(r));
+  commit();
+});
+
+/* ---------- merge (기기 간 병합) ---------- */
+function mergeList(a, b) {
+  const m = new Map((a || []).map(x => [x.id, x]));
+  for (const x of b || []) {
+    if (!x || !x.id) continue;
+    const y = m.get(x.id);
+    if (!y || (x.updatedAt || 0) > (y.updatedAt || 0)) m.set(x.id, x);
+  }
+  return [...m.values()];
+}
+function mergeState(o) {
+  if (!o || typeof o !== 'object') return;
+  state.tasks = mergeList(state.tasks, o.tasks);
+  state.routines = mergeList(state.routines, o.routines);
+  state.log = mergeList(state.log, o.log).sort((a, b) => a.ts - b.ts);
+}
+
+/* ---------- backup / export ---------- */
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('#exportJson').onclick = () => download(`todo-backup-${todayStr()}.json`, JSON.stringify(state, null, 1), 'application/json');
+$('#exportCsv').onclick = () => {
+  const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const rows = [['시각', '동작', '내용', '비고'].map(q).join(',')]
+    .concat([...state.log].sort((a, b) => a.ts - b.ts).map(l => {
+      const d = new Date(l.ts);
+      return [`${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`, l.action, l.title, l.detail].map(q).join(',');
+    }));
+  download(`todo-log-${todayStr()}.csv`, '﻿' + rows.join('\r\n'), 'text/csv');
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { mergeState(JSON.parse(await f.text())); addLog('가져오기', f.name, '백업 병합'); ensureAll(true); commit(); alert('병합했습니다.'); }
+  catch (err) { alert('가져오기 실패: ' + err.message); }
+  e.target.value = '';
+};
+
+/* ---------- events: 출퇴근 응원 ---------- */
+$('#workBox').addEventListener('change', e => { if (e.target.matches('input')) saveWork(); });
+$('#workBox').addEventListener('click', e => { const b = e.target.closest('[data-prev]'); if (b) fireEvent(b.dataset.prev, true); });
+$('#bubble').onclick = () => { catEvent = null; renderCat(); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') document.title = '냥이 투두'; });
+
+/* ---------- init ---------- */
+const headSrc = document.querySelector('#catsvg .pose-stand .head');
+for (const slot of $$('#catsvg .headslot')) { slot.setAttribute('transform', slot.dataset.tf); slot.appendChild(headSrc.cloneNode(true)); }
+fillWorkForm();
+applyCat();
+ensureAll(true);
+render();
+setInterval(() => {
+  const t = todayStr();
+  if (t !== lastToday) { if (selected === lastToday) selected = t; lastToday = t; ensureAll(); render(); }
+}, 60000);
+workTick();
+setInterval(workTick, 10000);
+})();
+</script>
+</body>
+</html>
