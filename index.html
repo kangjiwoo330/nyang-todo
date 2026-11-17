@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="달성률에 따라 고양이가 달리는 할 일 앱. 데이터는 내 브라우저에만 저장됩니다.">
 <link rel="icon" href="cat.ico">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#e8833a">
 <title>냥이 투두</title>
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--ink:#2b2a28;--muted:#8a857c;--line:#e6e1d7;--accent:#e8833a;--ok:#3f9b6b;--warn:#c9503c;--soft:#fdf1e6;--ground:#c9c2b4;--paw:#e8833a}
@@ -175,6 +178,7 @@ td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertic
       <input type="date" id="datePick">
       <button id="nextDay" title="다음날">▶</button>
       <button id="goToday">오늘</button>
+      <button class="primary" id="installBtn" title="바탕화면·시작 메뉴에 앱으로 설치" hidden>⬇ 앱으로 설치</button>
     </div>
   </header>
 
@@ -910,6 +914,24 @@ setInterval(() => {
 }, 60000);
 workTick();
 setInterval(workTick, 10000);
+})();
+</script>
+<script>
+// ---- 앱 설치(PWA) ----
+// 웹 주소(https)로 열었을 때만 동작합니다. index.html을 직접 연 경우(file://)에는 아무 일도 하지 않습니다.
+(function(){
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  var btn = document.getElementById('installBtn'), deferred = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferred = e; btn.hidden = false;
+  });
+  btn.addEventListener('click', function(){
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.finally(function(){ deferred = null; btn.hidden = true; });
+  });
+  window.addEventListener('appinstalled', function(){ btn.hidden = true; });
 })();
 </script>
 </body>
