@@ -46,9 +46,10 @@
 
 ### 인터넷에서 실행하지 않고, 그냥 내 컴퓨터 자체에서 사용하고 싶을때! (ZIP 다운로드)
 회사 보안 정책 등으로 링크가 막혔다면 컴퓨터 파일 다운로드 버전으로도 쓸 수 있습니다. 
-1. 업로드된 파일들 중 `nyang-todo.zip`을 찾아 누르고, 다운로드 그림 버튼을 클릭합니다. 
-2. 폴더 안의 `install-app.bat`을 더블클릭하면 바탕화면에 앱 아이콘이 생깁니다. (파란 "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**)
-3. 또는 `index.html`을 Edge·Chrome으로 바로 열어도 됩니다.
+1. 업로드된 파일들 중 `nyang-todo.zip`을 찾아 누르고, 다운로드 그림 버튼을 클릭합니다.
+   (잘 안보이시는 분들은 [구글 드라이브](https://drive.google.com/file/d/1T7UZPs96PHDTo-54NoAkmcht2zXtZEBl/view?usp=sharing)에서 다운받으셔도 됩니당)
+3. 폴더 안의 `install-app.bat`을 더블클릭하면 바탕화면에 앱 아이콘이 생깁니다. (파란 "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**)
+4. 또는 `index.html`을 Edge·Chrome으로 바로 열어도 됩니다.
 
 ---
 ## 2. 할 일 관리
